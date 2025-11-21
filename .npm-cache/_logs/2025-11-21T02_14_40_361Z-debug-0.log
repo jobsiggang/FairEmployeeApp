@@ -5,10 +5,9 @@
 4 silly config:load:file:D:\fairproject\FairEmployeeApp\.npmrc
 5 silly config:load:file:C:\Users\jjcha\.npmrc
 6 silly config:load:file:C:\Users\jjcha\AppData\Roaming\npm\etc\npmrc
-7 verbose title npm installnpx react-native start
-8 verbose argv "installnpx" "react-native" "start" "--reset-cache"
-9 verbose logfile logs-max:10 dir:D:\fairproject\FairEmployeeApp\.npm-cache\_logs\2025-11-20T02_39_44_798Z-
-10 verbose logfile D:\fairproject\FairEmployeeApp\.npm-cache\_logs\2025-11-20T02_39_44_798Z-debug-0.log
+7 verbose title npm exec react-native run-android
+8 verbose argv "exec" "--" "react-native" "run-android"
+9 verbose logfile logs-max:10 dir:D:\fairproject\FairEmployeeApp\.npm-cache\_logs\2025-11-21T02_14_40_361Z-
+10 verbose logfile D:\fairproject\FairEmployeeApp\.npm-cache\_logs\2025-11-21T02_14_40_361Z-debug-0.log
 11 silly logfile start cleaning logs, removing 1 files
-12 verbose exit 1
-13 verbose code 1
+12 silly logfile done cleaning log files

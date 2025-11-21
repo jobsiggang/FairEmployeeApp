@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { MainHeader} from '../components/HeaderNavigation';
 import {
   View,
   Text,
@@ -12,6 +13,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import API from '../config/api';
+
 
 const HistoryScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
@@ -93,30 +95,7 @@ const HistoryScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.companyName}>{user?.companyName || '회사명'}</Text>
-          <Text style={styles.userName}>
-            {user?.name || '사용자'} {user?.username ? `(${user.username})` : ''}
-          </Text>
-        </View>
-        <TouchableOpacity onPress={() => navigation.replace('Login')}>
-          <Text style={styles.logoutButton}>로그아웃</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.tabBar}>
-        <TouchableOpacity
-          style={styles.tabButton}
-          onPress={() => navigation.navigate('Upload')}
-        >
-          <Text style={styles.tabButtonText}>📸 사진 업로드</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tabButton, styles.activeTab]}
-        >
-          <Text style={[styles.tabButtonText, styles.activeTabText]}>📋 전송내역</Text>
-        </TouchableOpacity>
-      </View>
+    <MainHeader navigation={navigation} activeTab="history" />
       {selectedDate ? (
         <ScrollView>
           <Text style={styles.sectionTitle}>Uploads for {selectedDate}</Text>

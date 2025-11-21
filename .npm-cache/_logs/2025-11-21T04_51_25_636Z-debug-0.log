@@ -5,9 +5,11 @@
 4 silly config:load:file:D:\fairproject\FairEmployeeApp\.npmrc
 5 silly config:load:file:C:\Users\jjcha\.npmrc
 6 silly config:load:file:C:\Users\jjcha\AppData\Roaming\npm\etc\npmrc
-7 verbose title npm run android
-8 verbose argv "run" "android"
-9 verbose logfile logs-max:10 dir:D:\fairproject\FairEmployeeApp\.npm-cache\_logs\2025-11-20T02_40_15_633Z-
-10 verbose logfile D:\fairproject\FairEmployeeApp\.npm-cache\_logs\2025-11-20T02_40_15_633Z-debug-0.log
+7 verbose title npm exec react-native run-android
+8 verbose argv "exec" "--" "react-native" "run-android"
+9 verbose logfile logs-max:10 dir:D:\fairproject\FairEmployeeApp\.npm-cache\_logs\2025-11-21T04_51_25_636Z-
+10 verbose logfile D:\fairproject\FairEmployeeApp\.npm-cache\_logs\2025-11-21T04_51_25_636Z-debug-0.log
 11 silly logfile start cleaning logs, removing 1 files
 12 silly logfile done cleaning log files
+13 verbose exit 0
+14 info ok

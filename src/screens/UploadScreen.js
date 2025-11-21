@@ -1,4 +1,5 @@
 // UploadScreen.js
+import { MainHeader} from '../components/HeaderNavigation';
 import React, { useState, useEffect, useRef } from 'react';
 import { canvasConfig } from '../config/compositeConfig';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -24,7 +25,6 @@ import RNFS from 'react-native-fs';
 import API from '../config/api';
 import Share from 'react-native-share';
 import ImageComposer from '../components/ImageComposer';
-import NavigationMenu from '../components/NavigationMenu';
 
 const { width: screenWidth } = Dimensions.get('window');
 const THUMB_SIZE = 80;
@@ -38,29 +38,6 @@ function getCanvasDims() {
 const cellPaddingX = canvasConfig.table.cellPaddingX;
 const cellPaddingY = canvasConfig.table.cellPaddingY;
 
-/* ---------------------------
-   하위 컴포넌트 (내부 정의)
-   ---------------------------*/
-
-// 헤더
-const HeaderBar = ({ user, onLogout, navigation }) => (
-  <View style={styles.header}>
-    <View style={styles.headerTop}>
-      <View>
-        <Text style={styles.companyName}>{user?.companyName || '회사명'}</Text>
-        <Text style={styles.userName}>
-          {user?.name || '사용자'} {user?.username ? `(${user.username})` : ''}
-        </Text>
-      </View>
-      <TouchableOpacity onPress={onLogout}>
-        <Text style={styles.logoutButton}>로그아웃</Text>
-      </TouchableOpacity>
-    </View>
-    <View style={styles.menuContainer}>
-      <NavigationMenu navigation={navigation} activeScreen="Upload" />
-    </View>
-  </View>
-);
 
 // 개별 폼 필드 렌더러
 const FormField = ({
@@ -606,9 +583,10 @@ const UploadScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#3b82f6" />
-      <HeaderBar user={user} onLogout={handleLogout} navigation={navigation} />
-
+    <MainHeader navigation={navigation} activeTab="upload" />
+      <StatusBar barStyle="lig/t-content" backgroundColor="#3b82f6" />
+ 
+    
       <ScrollView style={styles.content}>
         {/* 1. 양식 선택 */}
         <Text style={styles.sectionTitle}>1. 양식 선택</Text>
@@ -783,36 +761,124 @@ const UploadScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
-  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: {
-    paddingTop: StatusBar.currentHeight,
-    paddingBottom: 8,
-    paddingHorizontal: 16,
-    backgroundColor: '#3b82f6',
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
+  container: {
+    flex: 1,
+    backgroundColor: '#f3f4f6',
+    padding: 16,
   },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  companyName: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
-  userName: { fontSize: 14, color: '#e0e7ff' },
-  logoutButton: { fontSize: 14, color: '#fff', fontWeight: '500' },
-  menuContainer: { flexDirection: 'row', justifyContent: 'space-between' },
-  content: { flex: 1, padding: 16 },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#111827', marginBottom: 12 },
-  compactButtonRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  compactButton: { flex: 1, marginRight: 8, backgroundColor: '#3b82f6', borderRadius: 8, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', elevation: 2 },
-  compactButtonText: { fontSize: 16, color: '#fff', fontWeight: '500' },
-  buttonDisabled: { backgroundColor: '#d1d5db' },
-  uploadBtn: { backgroundColor: '#2563eb' },
-  kakaoBtn: { backgroundColor: '#f9e84e' },
-  thumbnailScroll: { marginTop: 8, marginBottom: 16 },
-  thumbnail: { width: THUMB_SIZE, height: THUMB_SIZE, borderRadius: 8, overflow: 'hidden', marginRight: 8, borderWidth: 2, borderColor: '#d1d5db' },
-  thumbnailSelected: { borderColor: '#3b82f6' },
-  thumbnailImage: { width: '100%', height: '100%', resizeMode: 'cover' },
-  thumbnailRemove: { position: 'absolute', top: 4, right: 4, width: 24, height: 24, borderRadius: 12, backgroundColor: '#ef4444', justifyContent: 'center', alignItems: 'center', elevation: 2 },
-  thumbnailRemoveText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  // ... 필요하면 더 스타일 추가
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+  },
+  header: {
+    backgroundColor: '#3b82f6',
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  companyName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  userName: {
+    fontSize: 14,
+    color: '#e0e7ff',
+    marginTop: 4,
+  },
+  logoutButton: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  logoutText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  content: {
+    flex: 1,
+    padding: 20,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  compactButtonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  compactButton: {
+    flex: 1,
+    marginRight: 8,
+    backgroundColor: '#3b82f6',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 2,
+  },
+  compactButtonText: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: '500',
+  },
+  buttonDisabled: {
+    backgroundColor: '#d1d5db',
+  },
+  uploadBtn: {
+    backgroundColor: '#2563eb',
+  },
+  kakaoBtn: {
+    backgroundColor: '#f9e84e',
+  },
+  thumbnailScroll: {
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  thumbnail: {
+    width: THUMB_SIZE,
+    height: THUMB_SIZE,
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginRight: 8,
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+  },
+  thumbnailSelected: {
+    borderColor: '#3b82f6',
+  },
+  thumbnailImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  thumbnailRemove: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#ef4444',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 2,
+  },
+  thumbnailRemoveText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 });
 
 export default UploadScreen;
