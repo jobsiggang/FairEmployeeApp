@@ -25,6 +25,8 @@ import RNFS from 'react-native-fs';
 import API from '../config/api';
 import Share from 'react-native-share';
 import ImageComposer from '../components/ImageComposer';
+import ImageResizer from 'react-native-image-resizer';
+
 
 const { width: screenWidth } = Dimensions.get('window');
 const THUMB_SIZE = 80;
@@ -349,19 +351,6 @@ const UploadScreen = ({ navigation }) => {
     }
   };
 
-  // 로그아웃
-  const handleLogout = async () => {
-    Alert.alert('로그아웃', '정말 로그아웃하시겠습니까?', [
-      { text: '취소', style: 'cancel' },
-      {
-        text: '확인',
-        onPress: async () => {
-          await AsyncStorage.clear();
-          navigation.replace('Login');
-        },
-      },
-    ]);
-  };
 
   // 로컬에 저장 (캔버스 캡처)
   const saveToPhone = async () => {
@@ -406,108 +395,141 @@ const UploadScreen = ({ navigation }) => {
   };
 
   // 업로드 — 각 이미지를 서버에 전송한 뒤 DB 레코드 호출
-  const handleUpload = async () => {
-    if (!selectedForm) return Alert.alert('오류', '양식을 선택해주세요');
-    if (images.length === 0) return Alert.alert('오류', '사진을 추가해주세요');
-    if (!validateForm()) return Alert.alert('입력 오류', '모든 필수 항목을 입력해주세요 (빨간색 표시된 항목)');
 
-    setUploading(true);
-    setUploadProgress(0);
-    try {
-      const userData = await AsyncStorage.getItem('user');
-      const userObj = userData ? JSON.parse(userData) : null;
-      if (!userObj || !userObj.token) {
-        Alert.alert('오류', '로그인이 필요합니다.');
-        navigation.replace('Login');
-        return;
-      }
 
-      const uploadedItems = []; // 업로드한 항목 모음
-      const imageUrls = [];
-      const thumbnails = [];
+const handleUpload = async () => {
+  if (!selectedForm) return Alert.alert('오류', '양식을 선택해주세요');
+  if (images.length === 0) return Alert.alert('오류', '사진을 추가해주세요');
+  if (!validateForm()) return Alert.alert('입력 오류', '모든 필수 항목을 입력해주세요 (빨간색 표시된 항목)');
 
-      for (let i = 0; i < images.length; i++) {
-        setSelectedImageIndex(i);
-        await new Promise(r => setTimeout(r, 120));
-        if (!canvasRef.current) continue;
-        const compositeUri = await canvasRef.current.capture();
-        const base64Image = await RNFS.readFile(compositeUri, 'base64');
-        const fileNameParts = selectedForm.folderStructure || [];
-        let fileName = fileNameParts.map(f => formData[f] || f).filter(Boolean).join('_');
-        if (!fileName) fileName = `${selectedForm.formName}_${i + 1}`;
-        fileName += `_${Date.now()}.jpg`;
+  setUploading(true);
+  setUploadProgress(0);
 
-        const uploadData = {
-          base64Image: `data:image/jpeg;base64,${base64Image}`,
-          filename: fileName,
-          formId: selectedForm._id,
-          formName: selectedForm.formName,
-          imageCount: images.length,
-          fieldData: formData,
-        };
-
-        // 메인 업로드 API 호출
-        const resp = await fetch(API.uploadPhoto, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${userObj.token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(uploadData),
-        });
-        const data = await resp.json();
-        if (!data || !data.success) {
-          console.error('Image upload failed:', data);
-          Alert.alert('업로드 실패', data?.error || '서버 응답 오류');
-        } else {
-          uploadedItems.push({ filename: fileName, serverResponse: data });
-          imageUrls.push(data.imageUrl || fileName); // 서버에서 반환한 URL 또는 파일명
-          thumbnails.push(data.thumbnailUrl || null); // 서버에서 반환한 썸네일 URL (있으면)
-        }
-
-        setUploadProgress(Math.round(((i + 1) / images.length) * 100));
-      }
-
-      // 업로드된 항목이 있으면 DB 기록용 API 호출 (한 번)
-      if (uploadedItems.length > 0) {
-        // dbPayload를 for-loop 밖에서 생성
-        const dbPayload = {
-          formName: selectedForm.formName,
-          formId: selectedForm._id,
-          data: formData,
-          imageUrls,
-          imageCount: images.length,
-          thumbnails: thumbnails.filter(Boolean),
-          uploadedItems,
-        };
-
-        const resDb = await fetch(API.uploads, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${JSON.parse(await AsyncStorage.getItem('user')).token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(dbPayload),
-        });
-        const dbData = await resDb.json();
-        if (dbData && dbData.success) {
-          Alert.alert('성공', `${uploadedItems.length}개의 사진이 업로드되어 DB에 기록됨`);
-          setImages([]);
-          setSelectedImageIndex(null);
-        } else {
-          Alert.alert('업로드 완료(일부)', `이미지는 업로드되었으나 DB 기록에 실패했습니다.`);
-        }
-      } else {
-        Alert.alert('실패', '이미지 업로드에 실패했습니다.');
-      }
-    } catch (err) {
-      console.error('Upload error:', err);
-      Alert.alert('오류', '업로드 중 오류가 발생했습니다\n' + (err.message || err));
-    } finally {
-      setUploading(false);
-      setUploadProgress(0);
+  try {
+    const userData = await AsyncStorage.getItem('user');
+    const userObj = userData ? JSON.parse(userData) : null;
+    if (!userObj?.token) {
+      Alert.alert('오류', '로그인이 필요합니다.');
+      navigation.replace('Login');
+      return;
     }
-  };
+
+    const uploadedItems = [];
+    const imageUrls = [];
+    const thumbnails = [];
+
+    for (let i = 0; i < images.length; i++) {
+      setSelectedImageIndex(i);
+      await new Promise(r => setTimeout(r, 120));
+      if (!canvasRef.current) continue;
+
+      // 📸 원본 캡처
+      const compositeUri = await canvasRef.current.capture();
+
+      // 원본 Base64
+      const base64Image = await RNFS.readFile(compositeUri, 'base64');
+
+      // 📌 파일명 생성
+      const fileNameParts = selectedForm.folderStructure || [];
+      let fileName = fileNameParts.map(f => formData[f] || f).filter(Boolean).join('_');
+      if (!fileName) fileName = `${selectedForm.formName}_${i + 1}`;
+      fileName += `_${Date.now()}.jpg`;
+
+      // ================================
+      // ⭐ 썸네일 생성 (200 × 150)
+      // ================================
+      const thumb = await ImageResizer.createResizedImage(
+        compositeUri,
+        200,
+        150,
+        'JPEG',
+        80
+      );
+
+      const thumbBase64 = await RNFS.readFile(thumb.uri, 'base64');
+      thumbnails.push(`data:image/jpeg;base64,${thumbBase64}`);
+
+      // ================================
+      // ⭐ 업로드 데이터 구성
+      // ================================
+      const uploadData = {
+        filename: fileName,
+        base64Image: `data:image/jpeg;base64,${base64Image}`,
+        thumbnail: `data:image/jpeg;base64,${thumbBase64}`, // ★ 추가됨
+        formId: selectedForm._id,
+        formName: selectedForm.formName,
+        imageCount: images.length,
+        fieldData: formData,
+      };
+
+      // ================================
+      // ⭐ 서버 업로드
+      // ================================
+      const resp = await fetch(API.uploadPhoto, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${userObj.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(uploadData),
+      });
+
+      const data = await resp.json();
+
+      if (!data?.success) {
+        console.error('Image upload failed:', data);
+        Alert.alert('업로드 실패', data?.error || '서버 응답 오류');
+      } else {
+        uploadedItems.push({ filename: fileName, serverResponse: data });
+        imageUrls.push(data.imageUrl || fileName);
+      }
+
+      setUploadProgress(Math.round(((i + 1) / images.length) * 100));
+    }
+
+    // ================================
+    // ⭐ DB 기록 API 호출
+    // ================================
+    if (uploadedItems.length > 0) {
+      const dbPayload = {
+        formName: selectedForm.formName,
+        formId: selectedForm._id,
+        data: formData,
+        imageUrls,
+        imageCount: images.length,
+        thumbnails,      // ★ DB에도 썸네일 저장
+        uploadedItems,
+      };
+
+      const resDb = await fetch(API.uploads, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${JSON.parse(await AsyncStorage.getItem('user')).token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dbPayload),
+      });
+
+      const dbData = await resDb.json();
+
+      if (dbData?.success) {
+        Alert.alert('성공', `${uploadedItems.length}개의 사진이 업로드되어 DB에 기록됨`);
+        setImages([]);
+        setSelectedImageIndex(null);
+      } else {
+        Alert.alert('업로드 완료(일부)', `이미지는 업로드되었으나 DB 기록에 실패했습니다.`);
+      }
+    } else {
+      Alert.alert('실패', '이미지 업로드에 실패했습니다.');
+    }
+  } catch (err) {
+    console.error('Upload error:', err);
+    Alert.alert('오류', '업로드 중 오류가 발생했습니다\n' + (err.message || err));
+  } finally {
+    setUploading(false);
+    setUploadProgress(0);
+  }
+};
 
   // 카카오톡 공유
   const handleKakaoShare = async () => {
@@ -555,21 +577,26 @@ const UploadScreen = ({ navigation }) => {
   const entries = (selectedForm?.fields || []).map(field => ({ field }));
   const fontPx = parseInt(((canvasConfig.table.font || '').match(/(\d+)px/) || [])[1] || '16', 10);
   const fontSize = Math.max(10, Math.floor(CANVAS_WIDTH * fontPx / canvasConfig.width));
-  const minCol1Width = fontSize * 5 * 1.1;
-  const minCol2Width = fontSize * 7 * 1.1;
+  const minCol1Width = fontSize * 6 * 1.1;
+  const minCol2Width = fontSize * 9 * 1.1;
   let maxCol2TextWidth = entries.reduce((max, entry) => {
     const value = formData[entry.field] || '';
     return Math.max(max, value.length * fontSize * 0.6);
   }, 0);
   let col1Width = CANVAS_WIDTH * canvasConfig.table.col1Ratio * (2 / 3);
-  let requiredCol1Width = Math.max(col1Width, minCol1Width);
-  let requiredCol2Width = Math.max(maxCol2TextWidth + cellPaddingX * 2 + 12, minCol2Width);
-  let requiredTableWidth = requiredCol1Width + requiredCol2Width;
+  let col1TextMax = Math.max(...entries.map(e => (e.field.length * fontSize * 0.6)));
+  let col2TextMax = Math.max(...entries.map(e => ((formData[e.field] || '').length * fontSize * 0.6)));
+  let col1FinalWidth = Math.max(col1Width, minCol1Width, col1TextMax + cellPaddingX * 2 + 12);
+  let col2FinalWidth = Math.max(minCol2Width, col2TextMax + cellPaddingX * 2 + 12);
   let MIN_TABLE_WIDTH = CANVAS_WIDTH * canvasConfig.table.widthRatio;
+  let tableWidth = Math.max(MIN_TABLE_WIDTH, col1FinalWidth + col2FinalWidth);
   let MAX_TABLE_WIDTH = CANVAS_WIDTH * 0.95;
-  let tableWidth = Math.min(Math.max(MIN_TABLE_WIDTH, requiredTableWidth), MAX_TABLE_WIDTH);
-  let col1FinalWidth = requiredCol1Width;
-  let col2FinalWidth = tableWidth - col1FinalWidth;
+  if (tableWidth > MAX_TABLE_WIDTH) {
+    tableWidth = MAX_TABLE_WIDTH;
+    // 너비 초과 시, 1열은 최소값, 2열은 나머지
+    col1FinalWidth = Math.max(col1Width, minCol1Width);
+    col2FinalWidth = tableWidth - col1FinalWidth;
+  }
   const rowHeight = fontSize * 2.2;
   const tableHeight = entries.length * rowHeight;
 
@@ -589,7 +616,7 @@ const UploadScreen = ({ navigation }) => {
     
       <ScrollView style={styles.content}>
         {/* 1. 양식 선택 */}
-        <Text style={styles.sectionTitle}>1. 양식 선택</Text>
+        <Text style={styles.sectionTitle}>입력 양식 선택</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ minHeight: 56, maxHeight: 72 }}>
           {forms.map(form => (
             <TouchableOpacity
@@ -621,7 +648,7 @@ const UploadScreen = ({ navigation }) => {
         {selectedForm && (
           <View>
             <View style={{ marginBottom: 16 }}>
-              <Text style={styles.sectionTitle}>2. 정보 입력</Text>
+
               <View style={{ borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}>
                 {(selectedForm.fields || []).map(field => {
                   const isDateField = ['일자', '날짜', '공사일', 'date'].some(k => field.toLowerCase().includes(k));
@@ -653,79 +680,8 @@ const UploadScreen = ({ navigation }) => {
                 onChange={onDateChange}
               />
             )}
-
-            {/* 미리보기(캔버스 + 표 오버레이) */}
-            {selectedImage && (
-              <ImageComposer
-                ref={canvasRef}
-                selectedImage={selectedImage}
-                rotation={rotation}
-                canvasDims={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }}
-                tableOverlay={
-                  <View style={{
-                    position: 'absolute',
-                    left: 0,
-                    bottom: 0,
-                    width: tableWidth,
-                    height: tableHeight,
-                    backgroundColor: canvasConfig.table.backgroundColor,
-                    borderColor: canvasConfig.table.borderColor,
-                    borderWidth: canvasConfig.table.borderWidth,
-                    flexDirection: 'column',
-                    overflow: 'hidden',
-                  }}>
-                    {entries.map((entry, index) => (
-                      <View key={index} style={{ flexDirection: 'row', borderBottomWidth: index < entries.length - 1 ? 1 : 0, borderBottomColor: canvasConfig.table.borderColor }}>
-                        <Text style={{
-                          width: col1FinalWidth,
-                          paddingHorizontal: cellPaddingX,
-                          paddingVertical: cellPaddingY,
-                          fontSize,
-                          color: canvasConfig.table.textColor,
-                          fontWeight: 'bold',
-                          borderRightWidth: 1,
-                          borderRightColor: canvasConfig.table.borderColor
-                        }}>{entry.field}</Text>
-                        <Text style={{
-                          width: col2FinalWidth,
-                          paddingHorizontal: cellPaddingX,
-                          paddingVertical: cellPaddingY,
-                          fontSize,
-                          color: canvasConfig.table.textColor,
-                        }}>{formData[entry.field] || ''}</Text>
-                      </View>
-                    ))}
-                    <View style={{ width: 1, backgroundColor: canvasConfig.table.borderColor }} />
-                  </View>
-                }
-              />
-            )}
-
-            {/* 사진/버튼/썸네일 */}
-            <View>
-              <Text style={styles.sectionTitle}>3. 사진 촬영</Text>
-
-              {/* 업로드 진행 UI */}
-              {uploading && (
-                <View style={{
-                  position: 'absolute',
-                  top: 16,
-                  left: 16,
-                  right: 16,
-                  padding: 8,
-                  backgroundColor: '#ffffff',
-                  borderRadius: 8,
-                  elevation: 4,
-                  alignItems: 'center',
-                }}>
-                  <Text style={{ fontSize: 14, color: '#111827', marginBottom: 4 }}>{uploadProgress}% 전송 중...</Text>
-                  <View style={{ width: '100%', height: 8, backgroundColor: '#e5e7eb', borderRadius: 4, overflow: 'hidden' }}>
-                    <View style={{ width: `${uploadProgress}%`, height: '100%', backgroundColor: '#2563eb' }} />
-                  </View>
-                </View>
-              )}
-
-              <ActionButtons
+            {/* 액션 버튼들 */}
+                <ActionButtons
                 onTakePicture={takePicture}
                 onPickImage={pickImage}
                 onSaveToPhone={saveToPhone}
@@ -736,7 +692,57 @@ const UploadScreen = ({ navigation }) => {
                 imagesLength={images.length}
                 selectedImage={selectedImage}
               />
+            {/* 미리보기(캔버스 + 표 오버레이) + 회전 버튼 */}
+            {selectedImage && (
+              <View style={{
+                position: 'relative',
+                width: CANVAS_WIDTH + 4,
+                height: CANVAS_HEIGHT + 4,
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <ImageComposer
+                  ref={canvasRef}
+                  selectedImage={selectedImage}
+                  rotation={rotation}
+                  canvasDims={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }}
+                  tableEntries={entries}
+                  tableConfig={{
+                    col1FinalWidth,
+                    col2FinalWidth,
+                    tableWidth,
+                    tableHeight,
+                    cellPaddingX,
+                    cellPaddingY,
+                    fontSize,
+                    backgroundColor: canvasConfig.table.backgroundColor,
+                    borderColor: canvasConfig.table.borderColor,
+                    borderWidth: canvasConfig.table.borderWidth,
+                    textColor: canvasConfig.table.textColor,
+                  }}
+                  formData={formData}
+                />
+                <TouchableOpacity
+                  style={{
+                    position: 'absolute',
+                    top: 12,
+                    right: 12,
+                    backgroundColor: '#2563eb',
+                    borderRadius: 20,
+                    padding: 10,
+                    elevation: 3,
+                  }}
+                  onPress={rotateImage}
+                >
+                  <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 18 }}>⟳</Text>
+                </TouchableOpacity>
+              </View>
 
+            )}
+              
+
+
+<View>
               {images.length > 0 && (
                 <ThumbnailList
                   images={images}
@@ -750,12 +756,28 @@ const UploadScreen = ({ navigation }) => {
         )}
       </ScrollView>
 
-      {/* 토큰 표시 (디버그용) */}
+      /* 토큰 표시 (디버그용)
       <View style={{ width: '100%', padding: 12, marginTop: 24, alignItems: 'center' }}>
-        <Text style={{ fontSize: 12, color: '#444', backgroundColor: '#f3f4f6', padding: 8, borderRadius: 8 }}>
-          토큰: {user?.token || '없음'}
-        </Text>
-      </View>
+{/* 업로드 진행 UI */}
+{uploading && (
+  <View style={{
+    width: '100%',
+    padding: 8,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    marginBottom: 8, // 썸네일과 간격 확보
+    alignItems: 'center',
+  }}>
+    <Text style={{ fontSize: 14, color: '#111827', marginBottom: 4 }}>
+      {uploadProgress}% 전송 중...
+    </Text>
+    <View style={{ width: '100%', height: 8, backgroundColor: '#e5e7eb', borderRadius: 4, overflow: 'hidden' }}>
+      <View style={{ width: `${uploadProgress}%`, height: '100%', backgroundColor: '#2563eb' }} />
+    </View>
+  </View>
+)}
+
+      </View> 
     </View>
   );
 };

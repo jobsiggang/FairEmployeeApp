@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MainHeader} from '../components/HeaderNavigation';
+import { MainHeader } from '../components/HeaderNavigation';
 import {
   View,
   Text,
@@ -14,20 +14,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import API from '../config/api';
 
-
 const HistoryScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState([]);
   const [groupedHistory, setGroupedHistory] = useState({});
   const [selectedDate, setSelectedDate] = useState(null);
-  const [user, setUser] = useState(null); // Ensure user state is initialized
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     const loadUser = async () => {
       const userData = await AsyncStorage.getItem('user');
-      if (userData) {
-        setUser(JSON.parse(userData));
-      }
+      if (userData) setUser(JSON.parse(userData));
     };
     loadUser();
     fetchHistory();
@@ -38,7 +35,7 @@ const HistoryScreen = ({ navigation }) => {
     try {
       const userData = await AsyncStorage.getItem('user');
       const userObj = userData ? JSON.parse(userData) : null;
-      setUser(userObj); // Ensure user is set here as well
+      setUser(userObj);
 
       if (!userObj || !userObj.token) {
         Alert.alert('Authentication Error', 'Please log in again.');
@@ -66,7 +63,10 @@ const HistoryScreen = ({ navigation }) => {
       }
     } catch (error) {
       if (error.response) {
-        Alert.alert('Server Error', `Status: ${error.response.status}\nMessage: ${error.response.data?.error || 'Error occurred'}`);
+        Alert.alert(
+          'Server Error',
+          `Status: ${error.response.status}\nMessage: ${error.response.data?.error || 'Error occurred'}`
+        );
       } else {
         Alert.alert('Network Error', 'Unable to connect to the server.');
       }
@@ -93,66 +93,57 @@ const HistoryScreen = ({ navigation }) => {
     );
   }
 
-  return (
-    <View style={styles.container}>
-    <MainHeader navigation={navigation} activeTab="history" />
-      {selectedDate ? (
-        <ScrollView>
-          <Text style={styles.sectionTitle}>Uploads for {selectedDate}</Text>
-          {groupedHistory[selectedDate].map((item) => (
-            <View key={item._id} style={styles.card}>
-              <Text style={styles.title}>{item.formName || 'No Form Name'}</Text>
-              {item.imageUrls && item.imageUrls.length > 0 && (
-                <Image
-                  source={{ uri: item.imageUrls[0] }}
-                  style={styles.thumbnail}
-                />
-              )}
-              {Object.entries(item.data || {}).map(([key, value]) => (
-                <Text key={key} style={styles.subtitle}>{`${key}: ${value}`}</Text>
-              ))}
-              <Text style={styles.date}>{new Date(item.createdAt).toLocaleString()}</Text>
-            </View>
-          ))}
-          <Text style={styles.backButton} onPress={() => setSelectedDate(null)}>
-            Back to Dates
-          </Text>
-        </ScrollView>
-      ) : (
-        <ScrollView>
-          {Object.keys(groupedHistory).map((date) => (
-            <View key={date} style={styles.card}>
-              <Text style={styles.title} onPress={() => setSelectedDate(date)}>
-                {date}
-              </Text>
-            </View>
+  const renderCard = (item) => (
+    <View key={item._id} style={styles.card}>
+      <Text style={styles.title}>{item.formName || 'No Form Name'}</Text>
+
+      {/* 썸네일 여러 개 가로 배치 */}
+      {item.thumbnails && item.thumbnails.length > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbnailContainer}>
+          {item.thumbnails.map((thumb, idx) => (
+            <Image key={idx} source={{ uri: thumb }} style={styles.thumbnail} />
           ))}
         </ScrollView>
       )}
+
+      {/* 데이터 필드 */}
+      {Object.entries(item.data || {}).map(([key, value]) => (
+        <Text key={key} style={styles.subtitle}>{`${key}: ${value}`}</Text>
+      ))}
+
+      <Text style={styles.date}>{new Date(item.createdAt).toLocaleString()}</Text>
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      <MainHeader navigation={navigation} activeTab="history" />
+      <ScrollView>
+        {Object.keys(groupedHistory).map((date) => (
+          <View key={date} style={styles.card}>
+            <Text
+              style={styles.title}
+              onPress={() => setSelectedDate(selectedDate === date ? null : date)}
+            >
+              {date}
+            </Text>
+            {selectedDate === date && (
+              <>
+                <Text style={styles.sectionTitle}>Uploads for {date}</Text>
+                {groupedHistory[date].map(renderCard)}
+              </>
+            )}
+          </View>
+        ))}
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f9f9f9',
-    padding: 16,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#555',
-  },
-  emptyText: {
-    fontSize: 18,
-    color: '#999',
-  },
+  container: { flex: 1, backgroundColor: '#f9f9f9', padding: 16 },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 10, fontSize: 16, color: '#555' },
   card: {
     backgroundColor: '#fff',
     padding: 16,
@@ -168,80 +159,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
+    lineHeight: 20,
+    marginBottom: 4, // 제목 아래 여백 최소화
   },
-  subtitle: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
-  },
-  date: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 8,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
-  },
-  backButton: {
-    fontSize: 16,
-    color: '#3b82f6',
-    marginTop: 16,
-    textAlign: 'center',
-  },
-  thumbnail: {
-    width: 100,
-    height: 100,
-    resizeMode: 'cover',
-    borderRadius: 8,
-    marginVertical: 8,
-  },
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: '#f3f4f6',
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-  },
-  tabButton: {
-    flex: 1,
-    padding: 12,
-    alignItems: 'center',
-  },
-  tabButtonText: {
-    fontSize: 16,
-    color: '#555',
-  },
-  activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#3b82f6',
-  },
-  activeTabText: {
-    color: '#3b82f6',
-    fontWeight: 'bold',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#3b82f6',
-  },
-  companyName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  userName: {
-    fontSize: 14,
-    color: '#fff',
-  },
-  logoutButton: {
-    fontSize: 14,
-    color: '#fff',
-    textDecorationLine: 'underline',
-  },
+  subtitle: { fontSize: 14, color: '#666', marginTop: 4 },
+  date: { fontSize: 12, color: '#999', marginTop: 8 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 12 },
+  backButton: { fontSize: 16, color: '#3b82f6', marginTop: 16, textAlign: 'center' },
+  thumbnailContainer: { flexDirection: 'row', marginTop: 4 },
+  thumbnail: { width: 80, height: 80, borderRadius: 8, marginRight: 8 },
 });
 
 export default HistoryScreen;
