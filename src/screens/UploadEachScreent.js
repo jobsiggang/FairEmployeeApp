@@ -516,7 +516,7 @@ const handleKakaoShare = async () => {
 {/*  미리보기 캔버스 */}
           {selectedImage && C_W > 0 && entries.length > 0 && (
           <View style={{ position: 'relative', width: C_W + 4, height: C_H + 4, alignItems: 'center', justifyContent: 'center' }}>
-            {/* <ImageComposer
+            <ImageComposer
               ref={canvasRef}
               selectedImage={selectedImage}
               rotation={rotation}
@@ -524,7 +524,7 @@ const handleKakaoShare = async () => {
               tableEntries={entries}
               tableConfig={tableConfig}
               formData={formData}
-/> */}
+/>
 
 {/* 회전 버튼은 항상 미리보기 위에 표시 */}
                 <TouchableOpacity
