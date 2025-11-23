@@ -1,5 +1,5 @@
+// HistoryScreen.js
 import React, { useState, useEffect } from 'react';
-import { MainHeader } from '../components/HeaderNavigation';
 import {
   View,
   Text,
@@ -117,7 +117,6 @@ const HistoryScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <MainHeader navigation={navigation} activeTab="history" />
       <ScrollView>
         {Object.keys(groupedHistory).map((date) => (
           <View key={date} style={styles.card}>
@@ -130,7 +129,11 @@ const HistoryScreen = ({ navigation }) => {
             {selectedDate === date && (
               <>
                 <Text style={styles.sectionTitle}>Uploads for {date}</Text>
-                {groupedHistory[date].map(renderCard)}
+                {groupedHistory[date].map(item => (
+                  <View key={item._id}>
+                    {renderCard(item)}
+                  </View>
+                ))}
               </>
             )}
           </View>

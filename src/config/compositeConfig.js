@@ -8,10 +8,10 @@ export const canvasConfig = {
     backgroundColor: "#fff",
     borderColor: "rgba(0,0,0,0.3)",
     borderWidth: 1,
-    font: "bold 20px 'Malgun Gothic'",
+    font: "20px 'Malgun Gothic'",
     textColor: "#000",
     col1Ratio: 0.15,
-    cellPaddingX: 4,   // 좌우 패딩 4px로 축소
-    cellPaddingY: 0    // 상하 패딩 0px
+    cellPaddingX: 2,   // 좌우 패딩 4px로 축소
+    cellPaddingY: 0   // 상하 패딩 0px
   }
 };

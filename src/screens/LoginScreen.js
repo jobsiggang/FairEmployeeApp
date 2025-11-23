@@ -67,7 +67,13 @@ const LoginScreen = ({navigation}) => {
       const userData = await AsyncStorage.getItem('user');
       const user = userData ? JSON.parse(userData) : null;
       if (user && user.token) {
-        navigation.replace('Upload'); // Main 대신 Upload로
+        // 업로드 모드에 따라 이동
+        const mode = await AsyncStorage.getItem('uploadMode');
+        if (mode === 'multi') {
+         navigation.replace('MainTabs', { screen: 'UploadMulti' });
+        } else {
+         navigation.replace('MainTabs', { screen: 'UploadEach' });
+        }
       }
     } catch (error) {
       console.log('Auth check error:', error);
@@ -114,8 +120,13 @@ const LoginScreen = ({navigation}) => {
           companyName: selectedCompanyData ? selectedCompanyData.name : '',
         };
         await AsyncStorage.setItem('user', JSON.stringify(userObj));
-        // 로그인 성공 후 바로 업로드 화면으로 이동 (Stack에 정의된 'Upload')
-        navigation.replace('Upload');
+        // 로그인 성공 후 업로드 모드에 따라 이동
+        const mode = await AsyncStorage.getItem('uploadMode');
+        if (mode === 'multi') {
+          navigation.replace('UploadMulti');
+        } else {
+          navigation.replace('MainTabs', { screen: 'UploadEach' });
+        }
       } else {
         Alert.alert('로그인 실패', data.message || '로그인에 실패했습니다');
       }
